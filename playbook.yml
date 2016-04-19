@@ -1,15 +1,16 @@
 ---
-- hosts: all
+- hosts: db
   vars:
     wp_mysql_db: MyWP
     wp_mysql_user: wpUser
     wp_mysql_password: wpP4ss
     mysql_root_user: root
+    mysql_host_ip: 192.168.35.12
     mysql_root_password: Solinea
   remote_user: vagrant
   become: yes
   become_method: sudo
-# all in one WP install
+# Multi-Tier WP install
 
 ## Setup dependencies
   tasks:
@@ -64,6 +65,28 @@
 
     - name: Ensure MariaDB is running (and enable it at boot)
       service: name=mysql state=started enabled=yes
+
+- hosts: web
+  remote_user: vagrant
+  become: yes
+  become_method: sudo
+
+ tasks:
+    - name: Update all packages
+      apt: upgrade=dist update_cache=yes
+
+    - name: Unattended package installation
+      shell: export DEBIAN_FRONTEND=noninteractive
+      changed_when: false
+
+    - name: Install needed packages
+      apt: name={{ item }} state=present update_cache=yes
+      with_items:
+          - vim-nox
+          - apache2
+          - php5
+          - php5-mysql
+          - python-mysqldb
 
     - name: Create directory to download WordPress
       command: mkdir -p /opt/source/wordpress
