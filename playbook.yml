@@ -146,7 +146,7 @@
       sudo: yes
       shell: /usr/local/bin/wp core install --allow-root
                 --path=/var/www/html
-                --url="ttp://wp.smithss.org"
+                --url="http://wp.smithss.org"
                 --title="Solinea Ansible"
                 --admin_user="admin"
                 --admin_password="Solinea"
