@@ -113,9 +113,6 @@
         mode: u=rwx,g=rx,o=rx
       when: wpcli_is_downloaded.stat.exists == False
 
-#    - name: Create directory to download WordPress
-#      command: mkdir -p /opt/source/wordpress
-
     - name: Is WordPress downloaded?
       stat: path=/var/www/html/index.php
       register: wordpress_is_downloaded
@@ -124,6 +121,7 @@
       shell: /usr/local/bin/wp core download --allow-root
       args:
         chdir: /var/www/html
+
       when: wordpress_is_downloaded.stat.exists == False
 
     - name: Configure WordPress
@@ -152,16 +150,6 @@
                 --admin_password="Solinea"
                 --admin_email="jason@solinea.com"
       when: wordpress_is_installed|failed
-
-
-#    - name: Download WordPress
-#      get_url: url=https://www.wordpress.org/latest.tar.gz dest=/opt/source/wordpress/wordpress.tar.gz validate_certs=no
-
-#    - name: Extract WordPress
-#      command: "tar xzf /opt/source/wordpress/wordpress.tar.gz -C /var/www/html --strip-components 1"
-
-#    - name: Copy config file
-#      template: src=wp-config.php.j2 dest=/var/www/html/wp-config.php mode=0644
 
     #Remove index.html so WP loads at default URL
     - file: path=/var/www/html/index.html state=absent
