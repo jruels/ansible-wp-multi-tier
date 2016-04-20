@@ -1,14 +1,14 @@
 ---
 - hosts: all
   gather_facts: True
-
-- hosts: db
   vars:
     wp_mysql_db: MyWP
     wp_mysql_user: wpUser
     wp_mysql_password: wpP4ss
     mysql_root_user: root
     mysql_root_password: Solinea
+
+- hosts: db
   remote_user: vagrant
   become: yes
   become_method: sudo
@@ -96,17 +96,72 @@
           - php5-mysql
           - python-mysqldb
 
-    - name: Create directory to download WordPress
-      command: mkdir -p /opt/source/wordpress
+    - name: Is WP-CLI downloaded?
+      stat: path="/usr/local/bin/wp"
+      register: wpcli_is_downloaded
+
+    - name: Download WP-CLI
+      get_url:
+        url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        dest: /usr/local/bin/wp
+        mode: 0655
+      when: wpcli_is_downloaded.stat.exists == False
+
+    - name: Make WP-CLI executable
+      file:
+        path: /usr/local/bin/wp
+        mode: u=rwx,g=rx,o=rx
+      when: wpcli_is_downloaded.stat.exists == False
+
+#    - name: Create directory to download WordPress
+#      command: mkdir -p /opt/source/wordpress
+
+    - name: Is WordPress downloaded?
+      stat: path=/var/www/html/index.php
+      register: wordpress_is_downloaded
 
     - name: Download WordPress
-      get_url: url=https://www.wordpress.org/latest.tar.gz dest=/opt/source/wordpress/wordpress.tar.gz validate_certs=no
+      shell: /usr/local/bin/wp core download --allow-root
+      args:
+        chdir: /var/www/html
+      when: wordpress_is_downloaded.stat.exists == False
 
-    - name: Extract WordPress
-      command: "tar xzf /opt/source/wordpress/wordpress.tar.gz -C /var/www/html --strip-components 1"
+    - name: Configure WordPress
+      shell: /usr/local/bin/wp core config --allow-root
+                --path=/var/www/html
+                --dbhost="{{ hostvars['db01']['ansible_eth1']['ipv4']['address'] }}"
+                --dbname="{{ wp_mysql_db }}"
+                --dbuser="{{ wp_mysql_user }}"
+                --dbpass="{{ wp_mysql_password }}"
+      when: wordpress_is_downloaded.stat.exists == False
 
-    - name: Copy config file
-      template: src=wp-config.php.j2 dest=/var/www/html/wp-config.php mode=0644
+    - name: Is WordPress installed?
+      shell: /usr/local/bin/wp core is-installed --allow-root
+      args:
+        chdir: /var/www/html/
+      register: wordpress_is_installed
+      ignore_errors: True
+
+    - name: Install WordPress tables
+      sudo: yes
+      shell: /usr/local/bin/wp core install --allow-root
+                --path=/var/www/html
+                --url="http://wp.smithss.org"
+                --title="Solinea Ansible"
+                --admin_user="admin"
+                --admin_password="Solinea"
+                --admin_email="jason@solinea.com"
+      when: wordpress_is_installed|failed
+
+
+#    - name: Download WordPress
+#      get_url: url=https://www.wordpress.org/latest.tar.gz dest=/opt/source/wordpress/wordpress.tar.gz validate_certs=no
+
+#    - name: Extract WordPress
+#      command: "tar xzf /opt/source/wordpress/wordpress.tar.gz -C /var/www/html --strip-components 1"
+
+#    - name: Copy config file
+#      template: src=wp-config.php.j2 dest=/var/www/html/wp-config.php mode=0644
 
     #Remove index.html so WP loads at default URL
     - file: path=/var/www/html/index.html state=absent
