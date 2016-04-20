@@ -6,28 +6,28 @@
 Vagrant.configure("2") do |config|
 
   # Create the Ansible Command Server
-  config.vm.define :acs do |acs|
-    acs.vm.box = "ubuntu/trusty64"
-    acs.vm.hostname = "acs"
-    acs.vm.network "private_network", ip: "192.168.33.10"
-    acs.vm.provider "virtualbox" do |vb|
-      vb.memory = "256"
-    end
-  end
+#  config.vm.define :acs do |acs|
+#    acs.vm.box = "ubuntu/trusty64"
+#    acs.vm.hostname = "acs"
+#    acs.vm.network "private_network", ip: "192.168.33.10"
+#    acs.vm.provider "virtualbox" do |vb|
+#      vb.memory = "256"
+#    end
+#  end
 
   #Create a load balancer
-  config.vm.define :lb01 do |lb|
-      lb.vm.box="ubuntu/trusty64"
-      lb.vm.hostname = "lb01"
-      lb.vm.network "private_network", ip: "192.168.33.20"
-      lb.vm.network "forwarded_port", guest: 80, host: 6080
-      lb.vm.provider "virtualbox" do |vb|
-        vb.memory = "256"
-      end
-  end
+ # config.vm.define :lb01 do |lb|
+ #     lb.vm.box="ubuntu/trusty64"
+ #     lb.vm.hostname = "lb01"
+ #     lb.vm.network "private_network", ip: "192.168.33.20"
+ #     lb.vm.network "forwarded_port", guest: 80, host: 6080
+ #     lb.vm.provider "virtualbox" do |vb|
+ #       vb.memory = "256"
+ #     end
+ # end
 
   # Create some web servers
-  (1..3).each do |i|
+  (1..2).each do |i|
     config.vm.define "web0#{i}" do |node|
         node.vm.box="ubuntu/trusty64"
         node.vm.hostname = "web0#{i}"
@@ -37,7 +37,7 @@ Vagrant.configure("2") do |config|
           vb.memory = "256"
         end
     end
-	config.vm.synced_folder "../../wp-playbooks", "/root/wp-playbooks"
+#	config.vm.synced_folder "../../wp-playbooks", "/root/wp-playbooks"
   end
 
   config.vm.define "db01" do |db|
@@ -48,9 +48,10 @@ Vagrant.configure("2") do |config|
     db.vm.provider "virtualbox" do |vb|
       vb.memory = "1024"
     end
-      config.vm.provision "ansible" do |ansible|
-        ansible.verbose = "v"
-        ansible.playbook = "playbook.yml"
-     end
+#      config.vm.provision "ansible" do |ansible|
+#        ansible.verbose = "v"
+#        ansible.playbook = "playbook.yml"
+#        ansible.inventory_path = "./hosts"
+#      end
   end
 end
