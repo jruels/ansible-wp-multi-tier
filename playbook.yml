@@ -1,11 +1,13 @@
 ---
+- hosts: all
+  gather_facts: True
+
 - hosts: db
   vars:
     wp_mysql_db: MyWP
     wp_mysql_user: wpUser
     wp_mysql_password: wpP4ss
     mysql_root_user: root
-    mysql_host_ip: 192.168.35.12
     mysql_root_password: Solinea
   remote_user: vagrant
   become: yes
@@ -22,8 +24,8 @@
       apt_key: id=1BB943DB url=http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xCBCB082A1BB943DB state=present
       register: mariadb_key
 
-    - name: Update all packages
-      apt: upgrade=dist update_cache=yes
+#    - name: Update all packages
+#      apt: upgrade=dist update_cache=yes
 
     - name: Unattended package installation
       shell: export DEBIAN_FRONTEND=noninteractive
@@ -40,10 +42,14 @@
           - php5-mysql
           - python-mysqldb
 
+    - name: Enable remote MySQL access
+      lineinfile: dest=/etc/mysql/my.cnf regexp="^bind-address" line="bind-address = 0.0.0.0"
+
     - name: Set root password
       mysql_user: name="{{ mysql_root_user }}" password="{{ mysql_root_password }}" host="{{ item }}" priv=*.*:ALL,GRANT state=present
       with_items:
          - "{{ ansible_hostname }}"
+         - "{{ hostvars['web01']['ansible_eth1']['ipv4']['address'] }}"
          - 127.0.0.1
          - ::1
          - localhost
@@ -60,20 +66,21 @@
           login_user={{ mysql_root_user }}
           login_password={{ mysql_root_password }}
           name={{ wp_mysql_user }}
+          host={{ hostvars['web01']['ansible_eth1']['ipv4']['address'] }}
           password={{ wp_mysql_password }}
           priv=*.*:ALL
 
     - name: Ensure MariaDB is running (and enable it at boot)
-      service: name=mysql state=started enabled=yes
+      service: name=mysql state=restarted enabled=yes
 
 - hosts: web
   remote_user: vagrant
   become: yes
   become_method: sudo
 
- tasks:
-    - name: Update all packages
-      apt: upgrade=dist update_cache=yes
+  tasks:
+#    - name: Update all packages
+#      apt: upgrade=dist update_cache=yes
 
     - name: Unattended package installation
       shell: export DEBIAN_FRONTEND=noninteractive
@@ -84,6 +91,7 @@
       with_items:
           - vim-nox
           - apache2
+          - mysql-client
           - php5
           - php5-mysql
           - python-mysqldb
@@ -98,7 +106,7 @@
       command: "tar xzf /opt/source/wordpress/wordpress.tar.gz -C /var/www/html --strip-components 1"
 
     - name: Copy config file
-      template: src=wp-config.php dest=/var/www/html/wp-config.php mode=0644
+      template: src=wp-config.php.j2 dest=/var/www/html/wp-config.php mode=0644
 
     #Remove index.html so WP loads at default URL
     - file: path=/var/www/html/index.html state=absent
