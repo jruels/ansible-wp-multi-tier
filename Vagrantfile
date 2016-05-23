@@ -31,11 +31,14 @@ Vagrant.configure("2") do |config|
     config.vm.define "web0#{i}" do |node|
         node.vm.box="ubuntu/trusty64"
         node.vm.hostname = "web0#{i}"
-        node.vm.network :private_network, ip: "192.168.33.2#{i}"
+        node.vm.network :public_network, bridge: "enp8s0", ip: "192.168.1.2#{i}"
         node.vm.network "forwarded_port", guest: 80, host: "608#{i}"
         node.vm.provider "virtualbox" do |vb|
           vb.memory = "256"
         end
+     # node.vm.provision "shell",
+     #    run: "always",
+     #    inline: "route add default gw 192.168.1.1"
     end
 #	config.vm.synced_folder "../../wp-playbooks", "/root/wp-playbooks"
   end
@@ -43,8 +46,8 @@ Vagrant.configure("2") do |config|
   config.vm.define "db01" do |db|
     db.vm.box = "ubuntu/trusty64"
     db.vm.hostname = "db01"
-    db.vm.network "private_network", ip: "192.168.33.50"
-    db.vm.network "forwarded_port", guest: 80, host: 8080
+    db.vm.network "public_network", bridge: "enp8s0", ip: "192.168.1.50"
+  #  db.vm.network "forwarded_port", guest: 80, host: 8080
     db.vm.provider "virtualbox" do |vb|
       vb.memory = "1024"
     end
@@ -53,5 +56,8 @@ Vagrant.configure("2") do |config|
 #        ansible.playbook = "playbook.yml"
 #        ansible.inventory_path = "./hosts"
 #      end
+     # db.vm.provision "shell",
+     #    run: "always",
+     #    inline: "route add default gw 192.168.1.1"
   end
 end

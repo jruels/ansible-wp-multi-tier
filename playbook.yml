@@ -50,6 +50,7 @@
       with_items:
          - "{{ ansible_hostname }}"
          - "{{ hostvars['web01']['ansible_eth1']['ipv4']['address'] }}"
+         - "{{ hostvars['web02']['ansible_eth1']['ipv4']['address'] }}"
          - 127.0.0.1
          - ::1
          - localhost
@@ -141,7 +142,8 @@
       ignore_errors: True
 
     - name: Install WordPress tables
-      sudo: yes
+      become: yes 
+      become_method: sudo
       shell: /usr/local/bin/wp core install --allow-root
                 --path=/var/www/html
                 --url="http://wp.smithss.org"
@@ -153,3 +155,10 @@
 
     #Remove index.html so WP loads at default URL
     - file: path=/var/www/html/index.html state=absent
+    
+    - name: add PHP header
+      blockinfile:
+         dest: /var/www/html/wp-content/themes/twentysixteen/header.php
+         insertafter: <div class="site-branding">
+         content: |
+            <p class="site-description"><?php echo "I am hosted by {{ ansible_hostname }} with an IP of {{ ansible_eth1.ipv4.address }}.";?></p>
